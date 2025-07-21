@@ -6,6 +6,10 @@ router.get('/register', (req, res) => {
     res.render('register');
 });
 
+router.get('/login', (req, res) => {
+    res.render('login');
+});
+
 router.post('/register',
     body('email').trim().isEmail(),
     body('password').trim().isLength({ min: 6 }),

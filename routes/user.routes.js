@@ -15,6 +15,14 @@ router.post('/register',
         if (!errors.isEmpty()) {
             return res.status(400).json({ errors: errors.array(), message: 'Invalid input' });
         }
-    });
+        res.status(200).json({
+            message: 'User registered successfully',
+            user: {
+                email: req.body.email,
+                username: req.body.username
+            }
+        });
+    }
+);
 
 module.exports = router;

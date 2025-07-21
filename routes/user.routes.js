@@ -1,14 +1,20 @@
 const express = require('express');
 const router = express.Router();
+const { body, validationResult } = require('express-validator');
 
 router.get('/register', (req, res) => {
     res.render('register');
 });
 
-router.post('/register', (req, res) => {
-    // Here you would handle the registration logic, e.g., saving user data to a database
-    console.log(req.body);
-    res.send('User registered successfully');
-});
+router.post('/register',
+    body('email').trim().isEmail(),
+    body('password').trim().isLength({ min: 6 }),
+    body('username').trim().isLength({ min: 3 }),
+    (req, res) => {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array(), message: 'Invalid input' });
+        }
+    });
 
 module.exports = router;

@@ -4,6 +4,7 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const UserModel = require('../models/user.model');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 /*
  GET /register
@@ -97,12 +98,17 @@ router.get('/login', (req, res) => {
     res.render('login');
 });
 
-router.post('/login', (req, res) => {
+/*
+ POST /login
+ Handles user login with validation and JWT token generation
+ */
+router.post('/login',
+    // Input validation middleware
     body('username').trim().isLength({ min: 3 }),
-        body('password').trim().isLength({ min: 5 }),
-        async (req, res) => {
-
-
+    body('password').trim().isLength({ min: 5 }),
+    async (req, res) => {
+        try {
+            // Check for validation errors from express-validator
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({
@@ -111,24 +117,57 @@ router.post('/login', (req, res) => {
                 });
             }
 
+            // Extract login credentials from request body
             const { username, password } = req.body;
-            const user = await UserModel.findOne({ username: username })
+            
+            // Find user by username in database
+            const user = await UserModel.findOne({ username: username });
 
+            // Check if user exists
             if (!user) {
                 return res.status(400).json({
                     message: 'username or password is incorrect'
                 });
             }
 
+            // Compare provided password with hashed password in database
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
                 return res.status(400).json({
                     message: 'username or password is incorrect'
                 });
             }
-        }
 
-});
+            // Generate JWT token for the authenticated user
+            const token = jwt.sign({
+                userId: user._id,
+                email: user.email,
+                username: user.username
+            },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' } // Token expires in 24 hours
+            );
+
+            // Return success response with token
+            res.status(200).json({
+                message: 'Login successful',
+                token: token,
+                user: {
+                    id: user._id,
+                    email: user.email,
+                    username: user.username
+                }
+            });
+        } catch (error) {
+            // Handle any server errors during login
+            console.error('Login error:', error);
+            res.status(500).json({
+                message: 'Server error during login',
+                error: error.message
+            });
+        }
+    }
+);
 
 // Export the router to be used in main app
 module.exports = router;

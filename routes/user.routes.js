@@ -119,7 +119,7 @@ router.post('/login',
 
             // Extract login credentials from request body
             const { username, password } = req.body;
-            
+
             // Find user by username in database
             const user = await UserModel.findOne({ username: username });
 
@@ -148,18 +148,11 @@ router.post('/login',
                 { expiresIn: '24h' } // Token expires in 24 hours
             );
 
-            // Return success response with token
-            res.status(200).json({
-                message: 'Login successful',
-                token: token,
-                user: {
-                    id: user._id,
-                    email: user.email,
-                    username: user.username
-                }
-            });
-        } catch (error) {
-            // Handle any server errors during login
+            res.cookie('token', token)
+            res.send("Logged in successfully");
+        }
+        catch (error) {
+            // Handle unexpected server errors during login
             console.error('Login error:', error);
             res.status(500).json({
                 message: 'Server error during login',

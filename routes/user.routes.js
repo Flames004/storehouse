@@ -14,14 +14,6 @@ router.get('/register', (req, res) => {
 });
 
 /*
- GET /login
- Renders the user login form
- */
-router.get('/login', (req, res) => {
-    res.render('login');
-});
-
-/*
  POST /register
  Handles user registration with validation and password hashing
  */
@@ -34,9 +26,9 @@ router.post('/register',
         // Check for validation errors from express-validator
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ 
-                errors: errors.array(), 
-                message: 'Invalid input' 
+            return res.status(400).json({
+                errors: errors.array(),
+                message: 'Invalid input'
             });
         }
 
@@ -59,12 +51,12 @@ router.post('/register',
 
             // Hash the password before saving to database using bcrypt with salt rounds of 10 for security
             const hashedPassword = await bcrypt.hash(password, 10);
-            
+
             // Create new user in database with hashed password
-            const newUser = await UserModel.create({ 
-                email, 
-                password: hashedPassword, 
-                username 
+            const newUser = await UserModel.create({
+                email,
+                password: hashedPassword,
+                username
             });
 
             // Return success response (excluding password for security)
@@ -96,6 +88,47 @@ router.post('/register',
         }
     }
 );
+
+/*
+ GET /login
+ Renders the user login form
+ */
+router.get('/login', (req, res) => {
+    res.render('login');
+});
+
+router.post('/login', (req, res) => {
+    body('username').trim().isLength({ min: 3 }),
+        body('password').trim().isLength({ min: 5 }),
+        async (req, res) => {
+
+
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    errors: errors.array(),
+                    message: 'Invalid input'
+                });
+            }
+
+            const { username, password } = req.body;
+            const user = await UserModel.findOne({ username: username })
+
+            if (!user) {
+                return res.status(400).json({
+                    message: 'username or password is incorrect'
+                });
+            }
+
+            const isMatch = await bcrypt.compare(password, user.password);
+            if (!isMatch) {
+                return res.status(400).json({
+                    message: 'username or password is incorrect'
+                });
+            }
+        }
+
+});
 
 // Export the router to be used in main app
 module.exports = router;

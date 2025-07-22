@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const UserModel = require('../models/user.model');
+const bcrpyt = require('bcrypt');
 
 router.get('/register', (req, res) => {
     res.render('register');
@@ -23,21 +24,22 @@ router.post('/register',
 
         try {
             const { email, password, username } = req.body;
-            
+
             // Check if user already exists
-            const existingUser = await UserModel.findOne({ 
-                $or: [{ email }, { username }] 
+            const existingUser = await UserModel.findOne({
+                $or: [{ email }, { username }]
             });
-            
+
             if (existingUser) {
-                return res.status(400).json({ 
-                    message: 'User already exists with this email or username' 
+                return res.status(400).json({
+                    message: 'User already exists with this email or username'
                 });
             }
 
             // Create new user
-            const newUser = await UserModel.create({ email, password, username });
-            
+            const hashedPassword = await bcrpyt.hash(password, 10);
+            const newUser = await UserModel.create({ email, password: hashedPassword, username });
+
             res.status(201).json({
                 message: 'User registered successfully',
                 user: {
@@ -50,15 +52,15 @@ router.post('/register',
             // Handle duplicate key error
             if (error.code === 11000) {
                 const field = Object.keys(error.keyPattern)[0];
-                return res.status(400).json({ 
-                    message: `${field} already exists. Please choose a different ${field}.` 
+                return res.status(400).json({
+                    message: `${field} already exists. Please choose a different ${field}.`
                 });
             }
-            
+
             // Handle other errors
-            res.status(500).json({ 
+            res.status(500).json({
                 message: 'Server error during registration',
-                error: error.message 
+                error: error.message
             });
         }
     }
